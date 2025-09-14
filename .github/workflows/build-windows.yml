@@ -26,10 +26,7 @@ jobs:
         pip install pyinstaller
 
     - name: Build EXE with assets
-      run: |
-        pyinstaller --onefile --windowed nyan_bounce.py \
-          --add-data "assets/nyan.gif;assets" \
-          --add-data "assets/nyan.mp3;assets"
+      run: pyinstaller --onefile --windowed nyan_bounce.py --add-data "assets/nyan.gif;assets" --add-data "assets/nyan.mp3;assets"
 
     - name: Upload EXE artifact
       uses: actions/upload-artifact@v4
