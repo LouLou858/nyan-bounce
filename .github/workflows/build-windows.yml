@@ -32,7 +32,7 @@ jobs:
           --add-data "assets/nyan.mp3;assets"
 
     - name: Upload EXE artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nyan-bounce-exe
         path: dist/nyan_bounce.exe
