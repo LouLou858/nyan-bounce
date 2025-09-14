@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build and Release Nyan Bounce EXE
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build-and-release:
     runs-on: windows-latest
 
     steps:
@@ -28,8 +28,20 @@ jobs:
     - name: Build EXE with assets
       run: pyinstaller --onefile --windowed nyan_bounce.py --add-data "assets/nyan.gif;assets" --add-data "assets/nyan.mp3;assets"
 
-    - name: Upload EXE artifact
-      uses: actions/upload-artifact@v4
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
       with:
-        name: nyan-bounce-exe
-        path: dist/nyan_bounce.exe
+        tag_name: v${{ github.run_number }}
+        name: Nyan Bounce EXE v${{ github.run_number }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload EXE to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/nyan_bounce.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
