@@ -37,20 +37,13 @@ jobs:
         git config user.email "github-actions@github.com"
         git tag $TAG
         git push origin $TAG
-        Write-Output "tag=$TAG" | Out-File -FilePath tag.txt
-
-    - name: Set tag output
-      id: set_tag_output
-      shell: pwsh
-      run: |
-        $tag = Get-Content tag.txt
-        echo "::set-output name=TAG::$tag"
+        echo "::set-output name=TAG::$TAG"
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.set_tag_output.outputs.TAG }}
-        name: Nyan Bounce EXE ${{ steps.set_tag_output.outputs.TAG }}
+        tag_name: ${{ steps.create_tag.outputs.TAG }}
+        name: Nyan Bounce EXE ${{ steps.create_tag.outputs.TAG }}
         draft: false
         prerelease: false
       env:
@@ -62,4 +55,3 @@ jobs:
         files: dist/nyan_bounce.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
