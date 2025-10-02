@@ -62,7 +62,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-${{ env.version }}-${{ matrix.os }}
           path: dist_upload/*
 
   release:
@@ -75,7 +75,10 @@ jobs:
       - name: Download all artifacts from matrix
         uses: actions/download-artifact@v4
         with:
-          name: binaries
+          name: |
+            binaries-${{ env.version }}-ubuntu-latest
+            binaries-${{ env.version }}-windows-latest
+            binaries-${{ env.version }}-macos-latest
           path: release_files
 
       - name: Create GitHub Release
