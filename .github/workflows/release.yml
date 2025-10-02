@@ -13,13 +13,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Read version from version.txt
         id: get_version
-        run: echo "version=v$(cat version.txt)" >> $GITHUB_ENV
+        run: echo "version=v$(cat version.txt)" >> $GITHUB_ENV && echo "::set-output name=version::v$(cat version.txt)"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -62,6 +65,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Get version from build job
+        run: echo "version=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -77,3 +83,4 @@ jobs:
           tag_name: ${{ env.version }}
           name: Release ${{ env.version }}
           files: release_files/*
+
