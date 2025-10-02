@@ -38,11 +38,28 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pyinstaller --onefile --icon=assets/icons/nyan.ico --hidden-import=PyQt5 src/nyan_bounce.py
+            pyinstaller --onefile \
+              --icon=assets/icons/nyan.ico \
+              --hidden-import=PyQt5 \
+              --add-data "assets/nyan.gif;assets" \
+              --add-data "assets/nyan.mp3;assets" \
+              src/nyan_bounce.py
+
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            pyinstaller --windowed --onefile --icon=assets/icons/nyan.icns --hidden-import=PyQt5 src/nyan_bounce.py
+            pyinstaller --windowed --onefile \
+              --icon=assets/icons/nyan.icns \
+              --hidden-import=PyQt5 \
+              --add-data "assets/nyan.gif:assets" \
+              --add-data "assets/nyan.mp3:assets" \
+              src/nyan_bounce.py
+
           else
-            pyinstaller --onefile --icon=assets/icons/nyan.png --hidden-import=PyQt5 src/nyan_bounce.py
+            pyinstaller --onefile \
+              --icon=assets/icons/nyan.png \
+              --hidden-import=PyQt5 \
+              --add-data "assets/nyan.gif:assets" \
+              --add-data "assets/nyan.mp3:assets" \
+              src/nyan_bounce.py
           fi
 
       - name: Package and rename artifact
@@ -62,7 +79,7 @@ jobs:
             # Linux: binaire + .desktop
             mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-linux.bin
 
-            # Création du fichier .desktop avec echo
+            # Création du fichier .desktop
             echo "[Desktop Entry]" > dist_upload/nyan_bounce.desktop
             echo "Name=Nyan Bounce" >> dist_upload/nyan_bounce.desktop
             echo "Exec=./nyan_bounce-${VERSION}-linux.bin" >> dist_upload/nyan_bounce.desktop
@@ -83,4 +100,5 @@ jobs:
           tag_name: ${{ env.version }}
           name: Release ${{ env.version }}
           files: dist_upload/*
+
 
