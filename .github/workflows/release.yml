@@ -1,31 +1,25 @@
-name: Build & Release from version.txt
+name: Build and Release
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            suffix: linux
-          - os: windows-latest
-            suffix: windows.exe
-          - os: macos-latest
-            suffix: macos
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Read version from file
+      - name: Read version from version.txt
         id: get_version
-        run: echo "VERSION=$(cat version.txt)" >> $GITHUB_ENV
+        run: echo "version=v$(cat version.txt)" >> $GITHUB_ENV
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,50 +27,50 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+        run: pip install pyinstaller
 
       - name: Build binary
         run: |
-          pyinstaller --onefile nyan_bounce.py --name nyan_bounce
-          mv dist/nyan_bounce* "dist/nyan_bounce-${{ matrix.suffix }}"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            pyinstaller --onefile --icon=assets/icons/nyan.ico src/nyan_bounce.py
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            pyinstaller --onefile --icon=assets/icons/nyan.icns src/nyan_bounce.py
+          else
+            pyinstaller --onefile --icon=assets/icons/nyan.png src/nyan_bounce.py
+          fi
+        shell: bash
+
+      - name: Rename artifact
+        run: |
+          mkdir dist_upload
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            mv dist/nyan_bounce.exe dist_upload/nyan_bounce-${{ env.version }}-win.exe
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            mv dist/nyan_bounce dist_upload/nyan_bounce-${{ env.version }}-mac
+          else
+            mv dist/nyan_bounce dist_upload/nyan_bounce-${{ env.version }}-linux
+          fi
+        shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nyan_bounce-${{ matrix.suffix }}
-          path: dist/nyan_bounce-*
+          name: binaries
+          path: dist_upload/*
 
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Read version
-        id: get_version
-        run: echo "VERSION=$(cat version.txt)" >> $GITHUB_ENV
-
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./release
+          name: binaries
+          path: release_files
 
-      - name: Create Tag
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag $VERSION
-          git push origin $VERSION
-
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.VERSION }}
-          name: "Release ${{ env.VERSION }}"
-          files: ./release/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ env.version }}
+          name: Release ${{ env.version }}
+          files: release_files/*

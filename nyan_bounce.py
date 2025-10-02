@@ -1,97 +1,189 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-nyan_bounce.py
-Nyan Cat rebondit sur le bureau avec une traînée arc-en-ciel propre.
+nyan_bounce_improved_fixed.py
+Nyan Cat rebondit sur le bureau avec traînée améliorée.
+Musique correctement stoppée à la fermeture.
 """
 
 import sys, os, math, random
-from PyQt5.QtCore import Qt, QTimer, QRectF, QPointF
-from PyQt5.QtGui import QPainter, QColor, QPixmap
+from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtGui import QPainter, QColor, QPixmap, QMovie, QTransform
 from PyQt5.QtWidgets import QApplication, QWidget
 
-# --- CONFIG ---
-GIF_FILE = os.path.join("assets", "nyan_cat.png")  # sprite fixe du Nyan Cat
-NYAN_SIZE = 96
-SPEED = 4
-TRAIL_LENGTH = 20
-TRAIL_BLOCK = 12  # taille des rectangles
-RAINBOW = [
-    QColor(255, 0, 0),    # Rouge
-    QColor(255, 127, 0),  # Orange
-    QColor(255, 255, 0),  # Jaune
-    QColor(0, 255, 0),    # Vert
-    QColor(0, 0, 255),    # Bleu
-    QColor(139, 0, 255)   # Violet
-]
+# Masquer console sous Windows
+if os.name == 'nt':
+    import ctypes
+    ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
 
-class NyanBounce(QWidget):
+# --- Assets ---
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
+GIF_FILE = os.path.join(ASSETS_DIR, "nyan.gif")
+MUSIC_FILE = os.path.join(ASSETS_DIR, "nyan.mp3")
+
+# --- Config ---
+TIMER_MS = 16
+SPEED_INIT = 6.5
+BOUNCE_DAMPING = 1.0
+SPEED_INCREMENT = 0.5
+TRAIL_WIDTH = 38
+TRAIL_FADE = True  # légère transparence progressive
+
+# --- Son ---
+try:
+    import pygame
+    pygame.mixer.init()
+    PYGAME_OK = True
+except:
+    PYGAME_OK = False
+
+class NyanCat:
+    def __init__(self, movie, screen_w, screen_h):
+        self.movie = movie
+        self.screen_w = screen_w
+        self.screen_h = screen_h
+        self.nyan_w = 128
+        self.nyan_h = 64
+        self.x = screen_w // 2
+        self.y = screen_h // 3
+        angle = random.uniform(0, 360)
+        speed = SPEED_INIT
+        rad = math.radians(angle)
+        self.vx = speed * math.cos(rad)
+        self.vy = speed * math.sin(rad)
+        self.trail_pixmap = QPixmap(self.screen_w, self.screen_h)
+        self.trail_pixmap.fill(Qt.transparent)
+
+    def tick(self):
+        self.x += self.vx
+        self.y += self.vy
+        bounced = False
+
+        if self.x <= 0:
+            self.x = 0
+            self.vx = abs(self.vx) * BOUNCE_DAMPING
+            bounced = True
+        if self.x + self.nyan_w >= self.screen_w:
+            self.x = self.screen_w - self.nyan_w
+            self.vx = -abs(self.vx) * BOUNCE_DAMPING
+            bounced = True
+        if self.y <= 0:
+            self.y = 0
+            self.vy = abs(self.vy) * BOUNCE_DAMPING
+            bounced = True
+        if self.y + self.nyan_h >= self.screen_h:
+            self.y = self.screen_h - self.nyan_h
+            self.vy = -abs(self.vy) * BOUNCE_DAMPING
+            bounced = True
+
+        if bounced:
+            self.increase_speed_and_rotate()
+        self.draw_trail()
+
+    def increase_speed_and_rotate(self):
+        angle = random.uniform(0, 360)
+        speed = math.hypot(self.vx, self.vy) + SPEED_INCREMENT
+        rad = math.radians(angle)
+        self.vx = speed * math.cos(rad)
+        self.vy = speed * math.sin(rad)
+
+    def draw_trail(self):
+        painter = QPainter(self.trail_pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        w = TRAIL_WIDTH
+        h = int(w * 0.5)
+        base_x = int(self.x + self.nyan_w / 2)
+        base_y = int(self.y + self.nyan_h / 2)
+        colors_hues = [0, 30, 60, 120, 210, 260, 290]
+
+        for i, hue in enumerate(colors_hues):
+            alpha = 200 - i * 20 if TRAIL_FADE else 200
+            color = QColor.fromHsv(hue % 360, 220, 255, alpha)
+            painter.setBrush(color)
+            painter.setPen(Qt.NoPen)
+            band_w = int(w * (1 - i * 0.06))
+            band_h = h
+            rx = base_x - i * int(w * 0.55)
+            ry = base_y - band_h // 2
+            painter.drawRect(rx - band_w, ry, band_w * 2, band_h)
+
+        painter.end()
+
+    def draw(self, painter):
+        painter.drawPixmap(0, 0, self.trail_pixmap)
+        if self.movie:
+            frame = self.movie.currentPixmap()
+            if not frame.isNull():
+                angle = math.degrees(math.atan2(self.vy, self.vx))
+                rotated = frame.transformed(QTransform().rotate(angle), Qt.SmoothTransformation)
+                painter.drawPixmap(int(self.x), int(self.y), rotated)
+
+class NyanWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.showFullScreen()
 
-        # Charger sprite
-        self.nyan = QPixmap(GIF_FILE).scaled(NYAN_SIZE, NYAN_SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        geo = QApplication.primaryScreen().geometry()
+        self.screen_w, self.screen_h = geo.width(), geo.height()
 
-        # Position / vitesse
-        screen = QApplication.primaryScreen().geometry()
-        self.x, self.y = screen.width()//3, screen.height()//3
-        self.vx, self.vy = SPEED, SPEED
+        self.movie = QMovie(GIF_FILE) if os.path.exists(GIF_FILE) else None
+        if self.movie:
+            self.movie.start()
 
-        # Liste des positions passées
-        self.trail = []
+        self.nyan = NyanCat(self.movie, self.screen_w, self.screen_h)
+        self.paused = False
 
-        # Timer animation
         self.timer = QTimer()
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(16)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(TIMER_MS)
 
-        self.resize(screen.width(), screen.height())
-        self.show()
+        if PYGAME_OK and os.path.exists(MUSIC_FILE):
+            pygame.mixer.music.load(MUSIC_FILE)
+            pygame.mixer.music.play(-1)
 
-    def update_frame(self):
-        screen = QApplication.primaryScreen().geometry()
-
-        # Màj position
-        self.x += self.vx
-        self.y += self.vy
-
-        # Rebonds
-        if self.x <= 0 or self.x + NYAN_SIZE >= screen.width():
-            self.vx = -self.vx
-        if self.y <= 0 or self.y + NYAN_SIZE >= screen.height():
-            self.vy = -self.vy
-
-        # Ajouter à la trail
-        self.trail.append((self.x, self.y, self.vx, self.vy))
-        if len(self.trail) > TRAIL_LENGTH:
-            self.trail.pop(0)
-
-        self.update()
+    def tick(self):
+        if not self.paused:
+            self.nyan.tick()
+            self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+        self.nyan.draw(painter)
+        painter.end()
 
-        # Dessiner trail bloc par bloc
-        for i, (tx, ty, vx, vy) in enumerate(self.trail):
-            angle = math.atan2(vy, vx)
-            for j, color in enumerate(RAINBOW):
-                painter.setBrush(color)
-                painter.setPen(Qt.NoPen)
-                dx = -math.cos(angle) * (j * TRAIL_BLOCK)
-                dy = -math.sin(angle) * (j * TRAIL_BLOCK)
-                rect = QRectF(tx + NYAN_SIZE/2 + dx,
-                              ty + NYAN_SIZE/2 + dy,
-                              TRAIL_BLOCK, TRAIL_BLOCK)
-                painter.drawRect(rect)
+    def closeEvent(self, event):
+        # arrêt propre de la musique
+        if PYGAME_OK:
+            try:
+                pygame.mixer.music.stop()
+            except:
+                pass
+        event.accept()
 
-        # Dessiner Nyan Cat
-        painter.drawPixmap(self.x, self.y, self.nyan)
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_N:
+            self.toggle_pause()
+        elif event.key() == Qt.Key_Escape:
+            self.close()
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.close()
+
+    def toggle_pause(self):
+        self.paused = not self.paused
+        if PYGAME_OK:
+            if self.paused:
+                pygame.mixer.music.pause()
+            else:
+                pygame.mixer.music.unpause()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = NyanBounce()
+    win = NyanWindow()
     sys.exit(app.exec_())
+
+
