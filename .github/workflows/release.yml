@@ -38,22 +38,36 @@ jobs:
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             pyinstaller --onefile --icon=assets/icons/nyan.ico src/nyan_bounce.py
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            pyinstaller --onefile --icon=assets/icons/nyan.icns src/nyan_bounce.py
+            pyinstaller --windowed --onefile --icon=assets/icons/nyan.icns src/nyan_bounce.py
           else
             pyinstaller --onefile --icon=assets/icons/nyan.png src/nyan_bounce.py
           fi
 
-      - name: Rename artifact and add extension
+      - name: Package and rename artifact
         shell: bash
         run: |
           mkdir -p dist_upload
+
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             mv dist/nyan_bounce.exe dist_upload/nyan_bounce-${VERSION}-win.exe
+
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-mac.bin
+            # macOS: créer dmg
+            APP_NAME="nyan_bounce.app"
+            mv dist/nyan_bounce.app dist_upload/$APP_NAME
+            hdiutil create -volname "Nyan Bounce" -srcfolder dist_upload/$APP_NAME -ov -format UDZO dist_upload/nyan_bounce-${VERSION}-mac.dmg
+
           else
+            # Linux: binaire + .desktop
             mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-linux.bin
-          fi
+            cat <<EOF > dist_upload/nyan_bounce.desktop
+[Desktop Entry]
+Name=Nyan Bounce
+Exec=\$(pwd)/nyan_bounce-${VERSION}-linux.bin
+Icon=\$(pwd)/assets/icons/nyan.png
+Type=Application
+Terminal=true
+EOF
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
