@@ -1,0 +1,17 @@
+2025-09-28 10:02:41,393 INFO: GIF_PATH=C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.gif AUDIO_PATH=C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.mp3
+2025-09-28 10:02:41,698 INFO: pygame initialized
+2025-09-28 10:02:41,782 INFO: Loaded GIF: C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.gif
+2025-09-28 10:02:41,783 INFO: Playing audio: C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.mp3
+2025-09-28 10:02:41,783 INFO: Nyan launched. Press N to pause/resume, Esc to quit. If keys don't work, click once on Nyan to focus.
+2025-09-28 10:02:41,886 DEBUG: Tried to activate window for focus.
+2025-09-28 10:03:12,532 INFO: Pause toggled: True
+2025-09-28 10:03:13,299 INFO: Pause toggled: False
+2025-09-28 10:03:19,747 INFO: Pause toggled: True
+2025-09-28 10:03:21,171 INFO: Quit requested
+2025-09-28 10:03:21,172 INFO: App exited with code 0
+2025-09-28 10:03:59,279 INFO: GIF_PATH=C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.gif AUDIO_PATH=C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.mp3
+2025-09-28 10:03:59,576 INFO: pygame initialized
+2025-09-28 10:03:59,652 INFO: Loaded GIF: C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.gif
+2025-09-28 10:03:59,653 INFO: Playing audio: C:\Users\Louis\Documents\github\nyan-bounce\assets\nyan.mp3
+2025-09-28 10:03:59,653 INFO: Nyan launched. Press N to pause/resume, Esc to quit. If keys don't work, click once on Nyan to focus.
+2025-09-28 10:03:59,756 DEBUG: Tried to activate window for focus.
