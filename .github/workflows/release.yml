@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: pip install pyinstaller
 
-      - name: Build binary (src)
+      - name: Build binary
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             pyinstaller --onefile --icon=assets/icons/nyan.ico src/nyan_bounce.py
@@ -37,17 +37,6 @@ jobs:
             pyinstaller --onefile --icon=assets/icons/nyan.icns src/nyan_bounce.py
           else
             pyinstaller --onefile --icon=assets/icons/nyan.png src/nyan_bounce.py
-          fi
-        shell: bash
-
-      - name: Build binary (root)
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pyinstaller --onefile --icon=assets/icons/nyan.ico nyan_bounce.py
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            pyinstaller --onefile --icon=assets/icons/nyan.icns nyan_bounce.py
-          else
-            pyinstaller --onefile --icon=assets/icons/nyan.png nyan_bounce.py
           fi
         shell: bash
 
