@@ -52,7 +52,6 @@ jobs:
             mv dist/nyan_bounce.exe dist_upload/nyan_bounce-${VERSION}-win.exe
 
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            # macOS: déplacer .app et créer dmg
             APP_NAME="nyan_bounce.app"
             mv dist/nyan_bounce.app dist_upload/$APP_NAME
             hdiutil create -volname "Nyan Bounce" -srcfolder dist_upload/$APP_NAME -ov -format UDZO dist_upload/nyan_bounce-${VERSION}-mac.dmg
@@ -60,15 +59,13 @@ jobs:
           else
             # Linux: binaire + .desktop
             mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-linux.bin
-            # Création du fichier .desktop avec bloc compatible YAML
-            cat <<EOF > dist_upload/nyan_bounce.desktop
-[Desktop Entry]
+            # Création du fichier .desktop compatible YAML
+            echo "[Desktop Entry]
 Name=Nyan Bounce
 Exec=./nyan_bounce-${VERSION}-linux.bin
 Icon=assets/icons/nyan.png
 Type=Application
-Terminal=true
-EOF
+Terminal=true" > dist_upload/nyan_bounce.desktop
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -82,4 +79,5 @@ EOF
           tag_name: ${{ env.version }}
           name: Release ${{ env.version }}
           files: dist_upload/*
+
 
