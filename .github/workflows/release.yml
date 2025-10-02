@@ -3,7 +3,7 @@ name: Build & Release from version.txt
 on:
   push:
     branches:
-      - main   # ou master, selon ta branche par défaut
+      - main
 
 jobs:
   build:
@@ -11,7 +11,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            suffix: linux
+          - os: windows-latest
+            suffix: windows.exe
+          - os: macos-latest
+            suffix: macos
 
     steps:
       - name: Checkout code
@@ -35,12 +41,13 @@ jobs:
       - name: Build binary
         run: |
           pyinstaller --onefile nyan_bounce.py --name nyan_bounce
+          mv dist/nyan_bounce* "dist/nyan_bounce-${{ matrix.suffix }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nyan_bounce-${{ matrix.os }}
-          path: dist/nyan_bounce*
+          name: nyan_bounce-${{ matrix.suffix }}
+          path: dist/nyan_bounce-*
 
   release:
     needs: build
@@ -73,4 +80,3 @@ jobs:
           files: ./release/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
