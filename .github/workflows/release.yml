@@ -22,6 +22,7 @@ jobs:
 
       - name: Read version from version.txt
         id: get_version
+        shell: bash
         run: |
           VERSION="v$(cat version.txt)"
           echo "version=$VERSION" >> $GITHUB_ENV
@@ -36,6 +37,7 @@ jobs:
         run: pip install pyinstaller
 
       - name: Build binary
+        shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             pyinstaller --onefile --icon=assets/icons/nyan.ico src/nyan_bounce.py
@@ -44,11 +46,11 @@ jobs:
           else
             pyinstaller --onefile --icon=assets/icons/nyan.png src/nyan_bounce.py
           fi
-        shell: bash
 
       - name: Rename artifact
+        shell: bash
         run: |
-          mkdir dist_upload
+          mkdir -p dist_upload
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             mv dist/nyan_bounce.exe dist_upload/nyan_bounce-${{ env.version }}-win.exe
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -56,7 +58,6 @@ jobs:
           else
             mv dist/nyan_bounce dist_upload/nyan_bounce-${{ env.version }}-linux
           fi
-        shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -71,7 +72,7 @@ jobs:
       - name: Get version from build job
         run: echo "version=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
 
-      - name: Download all artifacts
+      - name: Download all artifacts from matrix
         uses: actions/download-artifact@v4
         with:
           name: binaries
