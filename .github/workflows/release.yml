@@ -1,80 +1,98 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-nyan_bounce.py
-Nyan Cat rebondit sur le bureau avec traînée cubique continue et correctement orientée.
-Musique et GIF inclus pour PyInstaller.
-"""
+name: Build and Release
 
-import sys
-import os
-import shutil
-import tempfile
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QLabel, QWidget
-import pygame  # pour la musique
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
-# ------------------------
-# Fonctions pour PyInstaller
-# ------------------------
-def resource_path(relative_path):
-    """Retourne le chemin correct vers les assets, même dans un .exe PyInstaller"""
-    if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
-# ------------------------
-# Initialisation musique
-# ------------------------
-pygame.mixer.init()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-music_src = resource_path("assets/nyan.mp3")
-tmp_dir = tempfile.gettempdir()
-music_tmp = os.path.join(tmp_dir, "nyan.mp3")
-shutil.copyfile(music_src, music_tmp)
+      - name: Read version from version.txt
+        id: get_version
+        shell: bash
+        run: |
+          VERSION="v$(cat version.txt)"
+          echo "version=$VERSION" >> $GITHUB_ENV
 
-pygame.mixer.music.load(music_tmp)
-pygame.mixer.music.play(-1)  # boucle infinie
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-# ------------------------
-# Initialisation application PyQt
-# ------------------------
-app = QApplication(sys.argv)
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          pip install pyqt5
+          pip install pygame
 
-# Fenêtre principale
-window = QWidget()
-window.setWindowTitle("Nyan Bounce")
-window.setGeometry(100, 100, 400, 400)
+      - name: Build binary
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            pyinstaller --onefile \
+              --icon=assets/icons/nyan.ico \
+              --hidden-import=PyQt5 \
+              --add-data "assets/nyan.gif;assets" \
+              --add-data "assets/nyan.mp3;assets" \
+              src/nyan_bounce.py
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            pyinstaller --windowed --onefile \
+              --icon=assets/icons/nyan.icns \
+              --hidden-import=PyQt5 \
+              --add-data "assets/nyan.gif:assets" \
+              --add-data "assets/nyan.mp3:assets" \
+              src/nyan_bounce.py
+          else
+            pyinstaller --onefile \
+              --icon=assets/icons/nyan.png \
+              --hidden-import=PyQt5 \
+              --add-data "assets/nyan.gif:assets" \
+              --add-data "assets/nyan.mp3:assets" \
+              src/nyan_bounce.py
+          fi
 
-# Label pour le GIF
-gif_label = QLabel(window)
-gif_path = resource_path("assets/nyan.gif")
-pixmap = QPixmap(gif_path)
-gif_label.setPixmap(pixmap)
-gif_label.setAlignment(Qt.AlignCenter)
-gif_label.resize(pixmap.width(), pixmap.height())
+      - name: Package and rename artifact
+        shell: bash
+        run: |
+          mkdir -p dist_upload
 
-window.show()
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            mv dist/nyan_bounce.exe dist_upload/nyan_bounce-${VERSION}-win.exe
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            APP_NAME="nyan_bounce.app"
+            mv dist/nyan_bounce.app dist_upload/$APP_NAME
+            hdiutil create -volname "Nyan Bounce" -srcfolder dist_upload/$APP_NAME -ov -format UDZO dist_upload/nyan_bounce-${VERSION}-mac.dmg
+          else
+            mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-linux.bin
+            echo "[Desktop Entry]" > dist_upload/nyan_bounce.desktop
+            echo "Name=Nyan Bounce" >> dist_upload/nyan_bounce.desktop
+            echo "Exec=./nyan_bounce-${VERSION}-linux.bin" >> dist_upload/nyan_bounce.desktop
+            echo "Icon=assets/icons/nyan.png" >> dist_upload/nyan_bounce.desktop
+            echo "Type=Application" >> dist_upload/nyan_bounce.desktop
+            echo "Terminal=true" >> dist_upload/nyan_bounce.desktop
+          fi
 
-# ------------------------
-# Timer pour mouvements (exemple simple)
-# ------------------------
-def move_label():
-    x = (gif_label.x() + 5) % window.width()
-    y = (gif_label.y() + 5) % window.height()
-    gif_label.move(x, y)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${VERSION}-${{ matrix.os }}
+          path: dist_upload/*
 
-timer = QTimer()
-timer.timeout.connect(move_label)
-timer.start(50)  # 20 FPS
-
-# ------------------------
-# Lancement de l'application
-# ------------------------
-try:
-    sys.exit(app.exec_())
-finally:
-    pygame.mixer.music.stop()
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.version }}
+          name: Release ${{ env.version }}
+          files: dist_upload/*
 
 
