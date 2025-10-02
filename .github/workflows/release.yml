@@ -44,18 +44,18 @@ jobs:
         run: |
           mkdir dist_upload
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            mv dist/nyan_bounce.exe dist_upload/nyan_bounce_windows-${{ env.version }}-win.exe
+            mv dist/nyan_bounce.exe dist_upload/nyan_bounce-${{ env.version }}-win.exe
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            mv dist/nyan_bounce dist_upload/nyan_bounce_macos-${{ env.version }}-mac
+            mv dist/nyan_bounce dist_upload/nyan_bounce-${{ env.version }}-mac
           else
-            mv dist/nyan_bounce dist_upload/nyan_bounce_linux-${{ env.version }}-linux
+            mv dist/nyan_bounce dist_upload/nyan_bounce-${{ env.version }}-linux
           fi
         shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-${{ env.version }}-${{ matrix.os }}
           path: dist_upload/*
 
   release:
@@ -65,7 +65,10 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: binaries
+          name: |
+            binaries-${{ env.version }}-ubuntu-latest
+            binaries-${{ env.version }}-windows-latest
+            binaries-${{ env.version }}-macos-latest
           path: release_files
 
       - name: Create GitHub Release
