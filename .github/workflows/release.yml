@@ -59,14 +59,14 @@ jobs:
           else
             # Linux: binaire + .desktop
             mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-linux.bin
-            cat <<EOF > dist_upload/nyan_bounce.desktop
-[Desktop Entry]
-Name=Nyan Bounce
-Exec=./nyan_bounce-${VERSION}-linux.bin
-Icon=assets/icons/nyan.png
-Type=Application
-Terminal=true
-EOF
+
+            # Création du fichier .desktop avec echo pour éviter YAML errors
+            echo "[Desktop Entry]" > dist_upload/nyan_bounce.desktop
+            echo "Name=Nyan Bounce" >> dist_upload/nyan_bounce.desktop
+            echo "Exec=./nyan_bounce-${VERSION}-linux.bin" >> dist_upload/nyan_bounce.desktop
+            echo "Icon=assets/icons/nyan.png" >> dist_upload/nyan_bounce.desktop
+            echo "Type=Application" >> dist_upload/nyan_bounce.desktop
+            echo "Terminal=true" >> dist_upload/nyan_bounce.desktop
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
