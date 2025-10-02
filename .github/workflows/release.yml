@@ -60,13 +60,14 @@ jobs:
             # Linux: binaire + .desktop
             mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-linux.bin
 
-            # Création du fichier .desktop avec echo pour éviter YAML errors
+            # Création du fichier .desktop avec echo
             echo "[Desktop Entry]" > dist_upload/nyan_bounce.desktop
             echo "Name=Nyan Bounce" >> dist_upload/nyan_bounce.desktop
             echo "Exec=./nyan_bounce-${VERSION}-linux.bin" >> dist_upload/nyan_bounce.desktop
             echo "Icon=assets/icons/nyan.png" >> dist_upload/nyan_bounce.desktop
             echo "Type=Application" >> dist_upload/nyan_bounce.desktop
             echo "Terminal=true" >> dist_upload/nyan_bounce.desktop
+          fi  # <- fermeture obligatoire du if principal
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
