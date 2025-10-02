@@ -52,7 +52,7 @@ jobs:
             mv dist/nyan_bounce.exe dist_upload/nyan_bounce-${VERSION}-win.exe
 
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            # macOS: créer dmg
+            # macOS: déplacer .app et créer dmg
             APP_NAME="nyan_bounce.app"
             mv dist/nyan_bounce.app dist_upload/$APP_NAME
             hdiutil create -volname "Nyan Bounce" -srcfolder dist_upload/$APP_NAME -ov -format UDZO dist_upload/nyan_bounce-${VERSION}-mac.dmg
@@ -60,11 +60,11 @@ jobs:
           else
             # Linux: binaire + .desktop
             mv dist/nyan_bounce dist_upload/nyan_bounce-${VERSION}-linux.bin
-            cat <<EOF > dist_upload/nyan_bounce.desktop
+            cat > dist_upload/nyan_bounce.desktop <<EOF
 [Desktop Entry]
 Name=Nyan Bounce
-Exec=\$(pwd)/nyan_bounce-${VERSION}-linux.bin
-Icon=\$(pwd)/assets/icons/nyan.png
+Exec=./nyan_bounce-${VERSION}-linux.bin
+Icon=assets/icons/nyan.png
 Type=Application
 Terminal=true
 EOF
@@ -81,3 +81,4 @@ EOF
           tag_name: ${{ env.version }}
           name: Release ${{ env.version }}
           files: dist_upload/*
+
