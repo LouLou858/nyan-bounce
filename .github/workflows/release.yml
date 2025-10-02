@@ -22,7 +22,10 @@ jobs:
 
       - name: Read version from version.txt
         id: get_version
-        run: echo "version=v$(cat version.txt)" >> $GITHUB_ENV && echo "::set-output name=version::v$(cat version.txt)"
+        run: |
+          VERSION="v$(cat version.txt)"
+          echo "version=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -58,7 +61,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ env.version }}-${{ matrix.os }}
+          name: binaries
           path: dist_upload/*
 
   release:
@@ -71,10 +74,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: |
-            binaries-${{ env.version }}-ubuntu-latest
-            binaries-${{ env.version }}-windows-latest
-            binaries-${{ env.version }}-macos-latest
+          name: binaries
           path: release_files
 
       - name: Create GitHub Release
@@ -83,4 +83,5 @@ jobs:
           tag_name: ${{ env.version }}
           name: Release ${{ env.version }}
           files: release_files/*
+
 
